@@ -10,7 +10,7 @@ public class ConeTrackingPipeline extends OpenCvPipeline {
     public Scalar lowerRed = new Scalar(0, 0, 0);
     public Scalar upperRed = new Scalar(255, 255, 255);
 
-    public Scalar lowerBlue = new Scalar(49, 96, 53);
+    public Scalar lowerBlue = new Scalar(112, 96, 53);
     public Scalar upperBlue = new Scalar(119, 212, 255);
 
     private Mat redThreshold = new Mat();
@@ -29,13 +29,13 @@ public class ConeTrackingPipeline extends OpenCvPipeline {
         for(MatOfPoint points : blueContours) {
             Rect rect = Imgproc.boundingRect(points);
 
-            if(biggestBlueRect == null || rect.area() > biggestBlueRect.area()) {
+            if(biggestBlueRect == null || (rect.area() > biggestBlueRect.area() && rect.height >= rect.width)) {
                 biggestBlueRect = rect;
             }
         }
 
         if(biggestBlueRect != null) {
-            Imgproc.rectangle(input, biggestBlueRect, new Scalar(0, 0, 255));
+            Imgproc.rectangle(input, biggestBlueRect, new Scalar(0, 0, 255), 5);
         }
 
         return input;
