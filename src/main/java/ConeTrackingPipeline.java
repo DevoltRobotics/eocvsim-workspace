@@ -43,6 +43,8 @@ public class ConeTrackingPipeline extends OpenCvPipeline {
 	public double minRectRatio = 0.1;
 	public double maxRectRatio = 0.9;
 	
+	public double ratioToAngleSensitivity = 4.7;
+	
 	Telemetry telemetry;
 	
 	public ConeTrackingPipeline(Telemetry telemetry) {
@@ -60,11 +62,26 @@ public class ConeTrackingPipeline extends OpenCvPipeline {
         Rect biggestRect = null;
 		
 		double rectRatio = 0.0;
+		
+		ArrayList<Rect> candidates = new ArrayList<>();
+		
+		double imageXCenter = input.cols() / 2d;
+		double imageYCenter = input.rows() / 2d;
 
         for(MatOfPoint points : contours) {
             Rect rect = Imgproc.boundingRect(points);
 
 			if(biggestRect == null || (rect.area() > biggestRect.area() && rect.height >= rect.width)) {
+				double xDistanceFromCenter = Math.abs((rect.x + rect.width / 2d) - imageXCenter);
+				
+				if(biggestRect != null) {
+					double currentXDistanceFromCenter = Math.abs((biggestRect.x + biggestRect.width / 2d) - imageXCenter);
+					
+					if(currentXDistanceFromCenter < xDistanceFromCenter) {
+						continue;
+					}
+				}
+				
 				rectRatio = (double)rect.width / rect.height;
 				
 				if(rectRatio >= minRectRatio && rectRatio <= maxRectRatio) {
@@ -149,16 +166,28 @@ public class ConeTrackingPipeline extends OpenCvPipeline {
 			double imgXCenter = input.cols() / 2d;
 			double rectXCenter = biggestRect.x + biggestRect.width / 2;
 			
-			double inPerPixel = 4d / biggestRect.width;
+			double widthRatio = input.cols() / biggestRect.width;
+			double heightRatio = input.cols() / biggestRect.width;
 			
-			double x = (rectXCenter - imgXCenter) * inPerPixel;
-			double distance = ((double)input.cols() / biggestRect.width) * inPerPixel * 40;
+			double sensitivity;
 			
-			double turretAngle = Range.clip(Math.toDegrees(Math.atan2(x, distance)), -45, 45);
+			if(widthRatio >= heightRatio) {
+				sensitivity = widthRatio / ratioToAngleSensitivity;
+			} else {
+				sensitivity = heightRatio / ratioToAngleSensitivity;
+			}
 			
-			telemetry.addData("in per pixel", inPerPixel);
-			telemetry.addData("cone x inches", x);
-			telemetry.addData("cone distance inches", distance);
+			//double inPerPixel = 4d / biggestRect.width;
+			
+			//double x = (rectXCenter - imgXCenter) * inPerPixel;
+			//double distance = ((double)input.cols() / biggestRect.width) * inPerPixel * 40;
+			
+			double turretAngle = ((rectXCenter - imgXCenter) / imgXCenter) * 35 * sensitivity; //Range.clip(Math.toDegrees(Math.atan2(x, distance)), -45, 45);
+			
+			//telemetry.addData("in per pixel", inPerPixel);
+			//telemetry.addData("cone x inches", x);
+			//telemetry.addData("cone distance inches", distance);
+			telemetry.addData("distance sensitivity", sensitivity);
 			telemetry.addData("turret angle", turretAngle);
 		}
 		
